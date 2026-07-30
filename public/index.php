@@ -1,0 +1,224 @@
+<?php declare(strict_types=1); ?>
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rick and Morty list</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style type="text/tailwindcss">
+  @theme {
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --color-canvas: #E4E4E4;
+    --color-ink: #1D1E20;
+    --color-muted: #808C9A;
+    --color-line: #EDEDED;
+    --color-brand: #8054C7;
+    --color-brand-soft: #EEE3FF;
+    --color-brand-ink: #5A3696;
+    --color-fav: #53C629;
+    --color-fav-soft: #DEFFDD;
+    --color-results: #2563eb;
+  }
+
+  @layer components {
+    /* A character row in the sidebar list. */
+    .row {
+      @apply relative flex items-center gap-3 rounded-lg px-3 py-3 cursor-pointer
+             transition-colors border-b border-line;
+    }
+    .row:hover { @apply bg-black/[.02]; }
+    .row-on {
+      @apply bg-brand-soft border-transparent;
+    }
+    .row-on + .row { @apply border-t-0; }
+
+    .section-label {
+      @apply px-3 pt-6 pb-2 text-[11px] font-semibold uppercase tracking-[.08em] text-muted;
+    }
+
+    /* Filter option pill. */
+    .pill {
+      @apply h-9 rounded-lg border border-line bg-white text-[13px] font-medium text-ink
+             transition-colors cursor-pointer hover:border-brand/40;
+    }
+    .pill-on {
+      @apply border-transparent bg-brand-soft text-brand-ink;
+    }
+
+    /* Label / value pair in the detail pane. */
+    .field { @apply border-b border-line py-4; }
+    .field dt { @apply text-[13px] font-semibold text-ink; }
+    .field dd { @apply text-[13px] text-muted mt-0.5; }
+
+    .icon-btn { @apply grid place-items-center rounded-md transition-colors cursor-pointer; }
+  }
+
+  /* Avatars: a pulsing disc while the image is in flight or waiting on a retry,
+     a flat one once the retries are spent and the fallback glyph takes over. */
+  @keyframes rm-pulse { 50% { opacity: .45; } }
+  img[data-url] { background-color: var(--color-line); }
+  img[data-loading] { animation: rm-pulse 1.4s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    img[data-loading] { animation: none; }
+  }
+
+  /* A soft-deleted row slides out instead of vanishing mid-click. */
+  .row-leaving {
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity .18s ease, transform .18s ease;
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .row-leaving { transition: none; }
+  }
+
+  /* On the selected row the starred heart sits in a white disc. Unlayered, so it
+     beats the button's own hover utility without needing !important. */
+  .row-on [data-star-on] {
+    background-color: #fff;
+    border-radius: 9999px;
+  }
+
+  /* Explicit show/hide, so JS never has to fight utility ordering. */
+  [data-toggle] { display: none; }
+  [data-toggle="flex"].open { display: flex; }
+  [data-toggle="block"].open { display: block; }
+
+  /* Mobile is one pane at a time; desktop is always master + detail. */
+  @media (max-width: 767px) {
+    body[data-view="detail"] #pane-list { display: none; }
+    body[data-view="list"] #pane-detail { display: none; }
+  }
+  @media (min-width: 768px) {
+    #hdr-search { display: none !important; }
+    #hdr-default { display: block !important; }
+  }
+</style>
+</head>
+
+<body class="h-full bg-canvas font-sans text-ink antialiased" data-view="list">
+<div class="mx-auto flex h-full max-w-[1440px] bg-white shadow-sm">
+
+  <!-- ── Sidebar: search + character list ─────────────────────────────── -->
+  <aside id="pane-list" class="flex w-full shrink-0 flex-col border-r border-line md:w-[375px]">
+
+    <div class="px-6 pt-6">
+      <!-- Default header -->
+      <h1 id="hdr-default" data-toggle="block" class="open text-[22px] font-bold tracking-tight">Rick and Morty list</h1>
+
+      <!-- Mobile header once a search/filter is active -->
+      <div id="hdr-search" data-toggle="flex" class="items-center justify-between">
+        <button data-act="clear-filters" class="icon-btn size-8 -ml-2 hover:bg-black/5" aria-label="Back">
+          <!-- heroicons/outline/arrow-left -->
+          <svg class="size-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+        </button>
+        <span class="text-[15px] font-semibold">Advanced search</span>
+        <button data-act="clear-filters" class="text-[15px] font-medium text-brand cursor-pointer">Done</button>
+      </div>
+
+      <!-- Search + filter toggle -->
+      <div class="relative mt-4">
+        <!-- heroicons/outline/magnifying-glass -->
+        <svg class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+        <input id="search" type="search" autocomplete="off" placeholder="Search or filter results"
+               class="h-11 w-full rounded-lg bg-[#F7F7F8] pl-10 pr-11 text-[13px] placeholder:text-muted
+                      outline-none ring-1 ring-transparent transition focus:bg-white focus:ring-brand/40">
+        <button id="toggle-filters" aria-label="Filters" aria-expanded="false"
+                class="icon-btn absolute right-1.5 top-1/2 size-8 -translate-y-1/2 text-brand hover:bg-brand-soft">
+          <!-- heroicons/outline/adjustments-vertical -->
+          <svg class="size-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5"/></svg>
+        </button>
+
+        <!-- Filters: dropdown on desktop, full screen on mobile -->
+        <form id="filters" data-toggle="flex" class="fixed inset-0 z-20 flex-col bg-white p-6
+                     md:absolute md:inset-auto md:left-0 md:right-0 md:top-[52px] md:z-10 md:rounded-xl
+                     md:border md:border-line md:p-4 md:shadow-lg">
+          <div class="mb-6 flex items-center md:hidden">
+            <button type="button" data-act="close-filters" class="icon-btn size-8 -ml-2 hover:bg-black/5" aria-label="Back">
+              <!-- heroicons/outline/arrow-left -->
+              <svg class="size-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+            </button>
+            <span class="flex-1 text-center text-[15px] font-semibold">Filters</span>
+            <span class="size-8"></span>
+          </div>
+
+          <div class="flex-1 space-y-4 overflow-y-auto">
+            <fieldset data-group="scope">
+              <legend class="mb-2 text-[13px] text-muted">Character</legend>
+              <div class="grid grid-cols-3 gap-2">
+                <button type="button" class="pill" value="all">All</button>
+                <button type="button" class="pill" value="starred">Starred</button>
+                <button type="button" class="pill" value="others">Others</button>
+              </div>
+            </fieldset>
+
+            <fieldset data-group="species">
+              <legend class="mb-2 text-[13px] text-muted">Specie</legend>
+              <div class="grid grid-cols-3 gap-2">
+                <button type="button" class="pill" value="">All</button>
+                <button type="button" class="pill" value="Human">Human</button>
+                <button type="button" class="pill" value="Alien">Alien</button>
+              </div>
+            </fieldset>
+
+            <fieldset data-group="status">
+              <legend class="mb-2 text-[13px] text-muted">Status</legend>
+              <div class="grid grid-cols-3 gap-2">
+                <button type="button" class="pill" value="">All</button>
+                <button type="button" class="pill" value="Alive">Alive</button>
+                <button type="button" class="pill" value="Dead">Dead</button>
+                <button type="button" class="pill col-span-3" value="unknown">Unknown</button>
+              </div>
+            </fieldset>
+
+            <fieldset data-group="gender">
+              <legend class="mb-2 text-[13px] text-muted">Gender</legend>
+              <div class="grid grid-cols-3 gap-2">
+                <button type="button" class="pill" value="">All</button>
+                <button type="button" class="pill" value="Female">Female</button>
+                <button type="button" class="pill" value="Male">Male</button>
+                <button type="button" class="pill col-span-3" value="Genderless">Genderless</button>
+              </div>
+            </fieldset>
+          </div>
+
+          <button id="apply" type="submit" disabled
+                  class="mt-6 h-11 w-full rounded-lg bg-[#F1F1F1] text-[14px] font-semibold text-muted
+                         transition-colors enabled:cursor-pointer enabled:bg-brand enabled:text-white
+                         enabled:hover:bg-brand-ink md:mt-4 md:h-9">Filter</button>
+        </form>
+      </div>
+
+      <!-- Result summary, shown while any filter or query is active -->
+      <div id="results-bar" data-toggle="flex" class="mt-4 items-center justify-between">
+        <span id="results-count" class="text-[13px] font-semibold text-results"></span>
+        <span id="results-filters" data-toggle="block" class="rounded-full bg-fav-soft px-2.5 py-1 text-[11px] font-semibold text-fav"></span>
+      </div>
+    </div>
+
+    <div id="list" aria-live="polite" aria-busy="true" class="min-h-0 flex-1 overflow-y-auto px-3 pb-4"></div>
+
+    <div id="deleted-bar" data-toggle="flex" class="items-center justify-between border-t border-line px-6 py-3 text-[12px] text-muted">
+      <span id="deleted-count"></span>
+      <button data-act="restore" class="font-semibold text-brand cursor-pointer">Restore all</button>
+    </div>
+  </aside>
+
+  <!-- ── Detail ───────────────────────────────────────────────────────── -->
+  <section id="pane-detail" class="flex flex-1 flex-col overflow-y-auto px-6 py-6 md:px-10 md:py-8">
+    <button data-act="back" class="icon-btn mb-4 size-8 -ml-2 hover:bg-black/5 md:hidden" aria-label="Back to list">
+      <!-- heroicons/outline/arrow-left -->
+      <svg class="size-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+    </button>
+    <div id="detail-body" class="max-w-[760px]"></div>
+  </section>
+
+</div>
+<script type="module" src="assets/app.js"></script>
+</body>
+</html>

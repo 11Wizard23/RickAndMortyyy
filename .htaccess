@@ -1,0 +1,33 @@
+# Safety net for a misconfigured document root.
+#
+# The document root is meant to be public/, which puts this directory and
+# everything beside it out of reach. This file only ever gets read if someone
+# pointed Apache at the project root instead — a common enough mistake on
+# shared hosting, where the root is fixed and you upload into it.
+#
+# In that situation the app still works from /public/, and nothing else leaks.
+
+Options -Indexes -MultiViews
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Application code, tests, the test runner, deploy snippets.
+    RewriteRule ^(?:src|tests|deploy)/ - [F,L]
+    RewriteRule ^test\.php$ - [F,L]
+
+    # Any dotted path segment: .git, .env, .htaccess, editor leftovers.
+    RewriteRule (?:^|/)\. - [F,L]
+</IfModule>
+
+# Same coverage without mod_rewrite. Matches on the basename, so the rewrite
+# rules above are what actually stop requests *inside* .git/.
+<FilesMatch "^(?:test\.php|\..*)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

@@ -1,0 +1,35 @@
+# Apache hardening for the document root.
+#
+# APACHE ONLY — nginx never reads .htaccess. See deploy/nginx.conf.
+#
+# Everything reachable over HTTP lives in this directory. Application code
+# (src/), the test suite and the deploy snippets sit one level up, outside the
+# document root, so they are unreachable by construction rather than by rule.
+# What is left here is ordinary hygiene.
+
+# Debian serves directory listings by default.
+Options -Indexes -MultiViews
+
+DirectoryIndex index.php
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Dotted path segments: .git, .env, .htaccess, editor leftovers.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule (?:^|/)\. - [F,L]
+</IfModule>
+
+<FilesMatch "^\..*$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

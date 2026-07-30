@@ -1,0 +1,11 @@
+# Fallback only. This directory sits outside the document root (public/), so
+# it is already unreachable on a correct install. This file covers the one gap
+# the root .htaccess cannot: a misconfigured document root on a host without
+# mod_rewrite, where the rewrite-based denials there do nothing.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

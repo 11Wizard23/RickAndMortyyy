@@ -1,0 +1,9 @@
+# Fallback only — see src/.htaccess. Test doubles and the JS suite are
+# development-only and never served.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

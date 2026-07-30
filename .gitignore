@@ -1,0 +1,28 @@
+# Agent and editor state
+.claude/
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies — none today; the project is deliberately install-free, but this
+# keeps an accidental `composer install` out of the history.
+/vendor/
+/node_modules/
+
+# Runtime output. Upstream responses are cached in the system temp directory,
+# not here, so this only catches logs a host might drop into the tree.
+*.log
+/logs/
+
+# NOTE: the .htaccess files are intentional and must stay tracked —
+# public/.htaccess, .htaccess, src/.htaccess, tests/.htaccess.
