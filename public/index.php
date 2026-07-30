@@ -20,7 +20,8 @@
     --color-brand-soft: #EEE3FF;
     --color-brand-ink: #5A3696;
     --color-fav: #53C629;
-    --color-fav-soft: #DEFFDD;
+    --color-fav-soft: #63D83833;   /* 20% alpha, so it sits on any backdrop */
+    --color-fav-ink: #3B8520;
     --color-results: #2563eb;
   }
 
@@ -46,7 +47,7 @@
              transition-colors cursor-pointer hover:border-brand/40;
     }
     .pill-on {
-      @apply border-transparent bg-brand-soft text-brand-ink;
+      @apply border-transparent bg-brand-soft text-brand;
     }
 
     /* Label / value pair in the detail pane. */
@@ -123,6 +124,16 @@
     .row-leaving { transition: none; }
   }
 
+  /* The filter toggle carries the selected-pill colours while the sheet is open,
+     and while filters are actually applied. The open state rides on the aria
+     attribute the button already maintains; the applied state comes from
+     render.js, off the same count that drives the "N Filters" badge.
+     Unlayered, so it beats the button's own hover utility. */
+  #toggle-filters[aria-expanded="true"],
+  #toggle-filters.filters-on {
+    background-color: var(--color-brand-soft);
+  }
+
   /* On the selected row the starred heart sits in a white disc. Unlayered, so it
      beats the button's own hover utility without needing !important. */
   .row-on [data-star-on] {
@@ -153,7 +164,7 @@
   <!-- ── Sidebar: search + character list ─────────────────────────────── -->
   <aside id="pane-list" class="flex w-full shrink-0 flex-col border-r border-line md:w-[375px]">
 
-    <div class="px-6 pt-6">
+    <div class="px-6 pt-6 pb-2">
       <!-- Default header -->
       <h1 id="hdr-default" data-toggle="block" class="open text-[22px] font-bold tracking-tight">Rick and Morty list</h1>
 
@@ -175,7 +186,8 @@
                class="h-11 w-full rounded-lg bg-[#F7F7F8] pl-10 pr-11 text-[13px] placeholder:text-muted
                       outline-none ring-1 ring-transparent transition focus:bg-white focus:ring-brand/40">
         <button id="toggle-filters" aria-label="Filters" aria-expanded="false"
-                class="icon-btn absolute right-1.5 top-1/2 size-8 -translate-y-1/2 text-brand hover:bg-brand-soft">
+                class="icon-btn absolute right-1.5 top-1/2 size-8 -translate-y-1/2 rounded-lg
+                       text-brand transition hover:bg-brand-soft">
           <!-- heroicons/outline/adjustments-vertical -->
           <svg class="size-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5"/></svg>
         </button>
@@ -235,15 +247,15 @@
 
           <button id="apply" type="submit" disabled
                   class="mt-6 h-11 w-full rounded-lg bg-[#F1F1F1] text-[14px] font-semibold text-muted
-                         transition-colors enabled:cursor-pointer enabled:bg-brand enabled:text-white
-                         enabled:hover:bg-brand-ink md:mt-4 md:h-9">Filter</button>
+                         transition enabled:cursor-pointer enabled:bg-brand-ink enabled:text-white
+                         enabled:hover:brightness-90 md:mt-4 md:h-9">Filter</button>
         </form>
       </div>
 
       <!-- Result summary, shown while any filter or query is active -->
       <div id="results-bar" data-toggle="flex" class="mt-4 items-center justify-between">
         <span id="results-count" class="text-[13px] font-semibold text-results"></span>
-        <span id="results-filters" data-toggle="block" class="rounded-full bg-fav-soft px-2.5 py-1 text-[11px] font-semibold text-fav"></span>
+        <span id="results-filters" data-toggle="block" class="rounded-full bg-fav-soft px-2.5 py-1 text-[11px] font-semibold text-fav-ink"></span>
       </div>
     </div>
 

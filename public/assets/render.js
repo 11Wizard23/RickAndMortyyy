@@ -166,6 +166,10 @@ export function paintList(el, model, { hasMore, selected }) {
 
 /** The result bar, the deleted bar, and which header the mobile view shows. */
 export function paintChrome(model, { filterCount, searching }) {
+  // Same count that drives the badge, so the toggle and the "N Filters" pill
+  // can never disagree about whether anything is applied.
+  $('#toggle-filters').classList.toggle('filters-on', filterCount > 0);
+
   $('#results-bar').classList.toggle('open', searching);
   $('#results-count').textContent = `${model.total} Result${model.total === 1 ? '' : 's'}`;
   $('#results-filters').textContent = filterCount ? `${filterCount} Filter${filterCount === 1 ? '' : 's'}` : '';
