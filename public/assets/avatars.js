@@ -29,7 +29,15 @@ const jitter = (delay) => delay * (0.7 + Math.random() * 0.6);
 const isAvatar = (el) => el.tagName === 'IMG' && Boolean(el.dataset.url);
 
 function onLoaded(event) {
-  if (isAvatar(event.target)) event.target.removeAttribute('data-loading');
+  const img = event.target;
+  if (!isAvatar(img)) return;
+
+  // Stops the disc pulsing, and reveals the image if a retry brought it back
+  // (the CSS hides anything carrying data-attempt, to suppress the browser's
+  // broken-image glyph). Clearing the counter also means a later, unrelated
+  // failure starts from a full retry budget.
+  img.removeAttribute('data-loading');
+  delete img.dataset.attempt;
 }
 
 function onFailed(event) {
@@ -41,6 +49,9 @@ function onFailed(event) {
   if (plan.action === 'fallback') {
     img.setAttribute('data-failed', '');
     img.removeAttribute('data-loading');
+    // The placeholder is meant to be seen, and data-attempt is what the CSS
+    // hides. Clear it here rather than relying on the data URI firing `load`.
+    delete img.dataset.attempt;
     img.src = FALLBACK;
 
     return;
@@ -52,6 +63,26 @@ function onFailed(event) {
     // A repaint may have replaced this element in the meantime; leave it be.
     if (img.isConnected) img.src = attemptUrl(img.dataset.url, plan.attempt);
   }, jitter(plan.delay));
+}
+
+/**
+ * Reveal avatars that are already decoded, synchronously.
+ *
+ * The CSS keeps every avatar hidden until `data-loading` is dropped, which is
+ * what guarantees a failed request never flashes the broken-image glyph. But
+ * `load` fires in a later task, so on a repaint an image sitting in the browser
+ * cache would still blink out for a frame. Checking `complete` right after the
+ * markup is inserted — before the browser paints — closes that gap.
+ *
+ * Call it after writing avatar markup into the document.
+ */
+export function settleAvatars(root = document) {
+  root.querySelectorAll('img[data-loading]').forEach((img) => {
+    if (img.complete && img.naturalWidth > 0) {
+      img.removeAttribute('data-loading');
+      delete img.dataset.attempt;
+    }
+  });
 }
 
 /**

@@ -42,8 +42,10 @@ const spinner = outline('arrowPath', 'size-4 shrink-0 animate-spin text-brand');
 // ── templates ────────────────────────────────────────────────────────────────
 const rowHTML = (c, selected) => `
   <div class="row group ${c.id === selected ? 'row-on' : ''}" data-id="${c.id}">
-    <img src="${esc(c.image)}" data-url="${esc(c.image)}" data-loading alt="" loading="lazy"
-         width="32" height="32" class="size-8 shrink-0 rounded-full object-cover">
+    <span class="avatar size-8">
+      <img src="${esc(c.image)}" data-url="${esc(c.image)}" data-loading alt="" loading="lazy"
+           width="32" height="32">
+    </span>
     <div class="min-w-0 flex-1">
       <p class="truncate text-[14px] font-semibold leading-tight">${esc(c.name)}</p>
       <p class="truncate text-[13px] text-muted">${esc(c.species)}</p>
@@ -104,8 +106,10 @@ const field = (label, value) => (String(value ?? '').trim() === '' ? '' : `
 
 export const detailHTML = (c) => `
   <div class="relative w-fit">
-    <img src="${esc(c.image)}" data-url="${esc(c.image)}" data-loading alt="${esc(c.name)}"
-         width="72" height="72" class="size-[72px] rounded-full object-cover">
+    <span class="avatar size-[72px]">
+      <img src="${esc(c.image)}" data-url="${esc(c.image)}" data-loading alt="${esc(c.name)}"
+           width="72" height="72">
+    </span>
     <button data-act="star" data-id="${c.id}" aria-label="${c.starred ? 'Unstar' : 'Star'} ${esc(c.name)}"
             class="icon-btn absolute -bottom-1 -right-1 size-7 rounded-full bg-white shadow-sm ring-1 ring-line">
       ${heart(c.starred)}

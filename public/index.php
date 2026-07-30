@@ -57,13 +57,59 @@
     .icon-btn { @apply grid place-items-center rounded-md transition-colors cursor-pointer; }
   }
 
-  /* Avatars: a pulsing disc while the image is in flight or waiting on a retry,
-     a flat one once the retries are spent and the fallback glyph takes over. */
-  @keyframes rm-pulse { 50% { opacity: .45; } }
-  img[data-url] { background-color: var(--color-line); }
-  img[data-loading] { animation: rm-pulse 1.4s ease-in-out infinite; }
+  /* Avatars.
+     The disc lives on the wrapper, not on the <img>. A failed or in-flight
+     image paints the browser's own broken-image glyph over its background, and
+     there is no way to suppress that glyph while keeping the background — so
+     the <img> stays fully transparent until it has actually decoded, and then
+     fades in over the disc. */
+  @keyframes rm-spin  { to { transform: rotate(1turn); } }
+  @keyframes rm-pulse { 50% { opacity: .35; } }
+
+  /* Grid, so the image and the spinner share one cell and the spinner centres
+     itself without any margin arithmetic. */
+  .avatar {
+    display: grid;
+    place-items: center;
+    flex: none;
+    overflow: hidden;
+    border-radius: 9999px;
+    background-color: var(--color-line);
+  }
+  .avatar > img {
+    grid-area: 1 / 1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity .25s ease;
+  }
+
+  /* Hidden until proven loaded: the browser paints its broken-image glyph the
+     instant a request fails, a frame before any error handler can react, so
+     reacting is too late — the image must never be visible before it has
+     decoded. avatars.js clears data-loading synchronously for anything already
+     in the cache, which is what stops this blinking the list on every repaint. */
+  .avatar > img[data-loading] { opacity: 0; }
+
+  /* Spinner while the image is in flight or waiting on a retry. Sized in %, so
+     the same rule fits the 32px row avatar and the 72px one in the detail. */
+  .avatar:has(> img[data-loading])::after {
+    content: "";
+    grid-area: 1 / 1;
+    width: 45%;
+    height: 45%;
+    border-radius: 9999px;
+    border: 2px solid rgba(0, 0, 0, .08);
+    border-top-color: var(--color-brand);
+    animation: rm-spin .7s linear infinite;
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    img[data-loading] { animation: none; }
+    /* Trade the rotation for a fade — still legible as "busy", no spinning. */
+    .avatar:has(> img[data-loading])::after {
+      animation: rm-pulse 1.4s ease-in-out infinite;
+    }
+    .avatar > img { transition: none; }
   }
 
   /* A soft-deleted row slides out instead of vanishing mid-click. */

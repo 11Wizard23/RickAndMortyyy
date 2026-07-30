@@ -5,7 +5,7 @@
 
 import * as Model from './model.js';
 import * as View from './render.js';
-import { installAvatarRetry } from './avatars.js';
+import { installAvatarRetry, settleAvatars } from './avatars.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -37,13 +37,20 @@ function paint() {
   const filterCount = activeFilters();
   View.paintList(list, model, { hasMore, selected });
   View.paintChrome(model, { filterCount, searching: filterCount > 0 || applied.name !== '' });
+  settleAvatars(list);
+}
+
+/** Every write of detail markup goes through here, so the avatar settles too. */
+function paintDetail(character) {
+  detail.innerHTML = character ? View.detailHTML(character) : View.placeholder;
+  settleAvatars(detail);
 }
 
 function showDetail(id) {
   selected = id;
   const character = id && cache.get(id);
 
-  detail.innerHTML = character ? View.detailHTML(character) : View.placeholder;
+  paintDetail(character);
   detail.classList.toggle('h-full', !character);
   document.body.dataset.view = character ? 'detail' : 'list';
   View.markSelected(list, id);
@@ -115,7 +122,7 @@ async function toggleStar(id) {
   const reseat = () => {
     Model.reseat(model, character, applied.scope);
     paint();
-    if (selected === id) detail.innerHTML = View.detailHTML(character);
+    if (selected === id) paintDetail(character);
   };
 
   character.starred = !character.starred;
